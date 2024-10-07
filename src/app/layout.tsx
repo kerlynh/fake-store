@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import ReactQueryProvider from "@/domain/providers/query";
+import { Theme } from "@radix-ui/themes";
+import "@radix-ui/themes/styles.css";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,7 +31,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Theme>
+          <ReactQueryProvider>{children}</ReactQueryProvider>
+        </Theme>
       </body>
     </html>
   );

@@ -1,101 +1,125 @@
+"use client";
+
 import Image from "next/image";
+import { AccessButton } from "@/components/Header/Button";
+import { useAllProducts } from "@/domain/service/productService";
+import { StarRating } from "@/components/Stars";
+import { Logo2 } from "@/components/Logo/index2";
+import { useEffect, useState } from "react";
+import { Product } from "@/types/productType";
+import { useRouter } from "next/navigation";
+import { LoggedButton } from "@/components/Header/Button/logged";
+import { useAddCart } from "@/domain/service/cartService";
+import { formatDate } from "@/helpers/date";
+import { useProductsStore } from "@/domain/store/productStore";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { data, isLoading } = useAllProducts();
+  const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
+  const [itemsToShow, setItemsToShow] = useState(5);
+  const router = useRouter();
+  const [userId, setUserId] = useState("");
+  const addToCart = useAddCart();
+  const setProducts = useProductsStore((state) => state.setProducts);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const storageToken = localStorage.getItem("token");
+    if (storageToken) setUserId(storageToken);
+  }, []);
+
+  useEffect(() => {
+    if (data) {
+      setVisibleProducts(data.slice(0, itemsToShow));
+      setProducts(data);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, itemsToShow]);
+
+  const onScroll = () => {
+    if (
+      data &&
+      window.innerHeight + document.documentElement.scrollTop + 50 >=
+        document.documentElement.offsetHeight
+    ) {
+      setItemsToShow((prev) => Math.min(prev + 5, data.length));
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  function onShopping(id: string) {
+    if (!userId) router.push("/login");
+
+    addToCart.mutate({
+      userId,
+      date: formatDate(),
+      products: [
+        {
+          productId: id,
+          quantity: 1,
+        },
+      ],
+    });
+  }
+
+  if (isLoading) return <div className="text-[10px]">Carregando...</div>;
+
+  return (
+    <>
+      <header className="w-full h-20 flex py-2 px-4 sm:px-8 fixed items-center justify-between bg-green-50 z-10">
+        <Logo2 />
+        {userId ? <LoggedButton /> : <AccessButton />}
+      </header>
+      <main className="flex flex-col items-center justify-center space-y-4 relative pt-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 place-items-center gap-3 p-5">
+          {visibleProducts?.map((item) => (
+            <div
+              key={item.id}
+              className="rounded-lg w-full lg:w-3/5 h-auto min-h-[478px] border border-green-900 overflow-hidden flex flex-col p-4 space-y-4 transition-all duration-300 ease-in-out justify-between"
+            >
+              <div className="relative h-60 max-w-full flex items-center justify-items-center">
+                <Image
+                  className=""
+                  src={item.image}
+                  alt={item.description}
+                  fill
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  style={{
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+              <p className="text-base font-semibold">{item.title}</p>
+              <div className="flex items-center space-x-2">
+                <p>{item.rating.rate}</p>
+                <StarRating rating={item.rating.rate} />
+                <p>({item.rating.count})</p>
+              </div>
+              <p className="text-xl font-bold">$ {item.price}</p>
+              <button
+                className="rounded-3xl w-full h-10 bg-green-800/70 text-white font-bold"
+                onClick={() => onShopping(item.id)}
+              >
+                Comprar
+              </button>
+            </div>
+          ))}
         </div>
+        {visibleProducts.length < data!.length && (
+          <div className="loading-spinner">Carregando mais...</div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      <footer className="bg-green-50 w-full h-auto py-8 px-4 text-center">
+        <p className="text-[10px]">
+          Fake Store - Avenida Fake Limer, 789 - Cidade Fake - FK - CEP:
+          00000-000 - CNPJ: 00.000.000/0000-00
+        </p>
       </footer>
-    </div>
+    </>
   );
 }
