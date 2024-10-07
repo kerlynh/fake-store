@@ -23,10 +23,12 @@ export function LoggedButton() {
     {
       label: "Minha Conta",
       url: "",
+      disabled: true,
     },
     {
       label: "Meus Pedidos",
       url: "",
+      disabled: true,
     },
   ];
 
@@ -76,7 +78,12 @@ export function LoggedButton() {
             <ul className="space-y-4">
               {accessList.map((item, idx: number) => (
                 <li key={idx}>
-                  <Link className="text-black" href={item.url}>
+                  <Link
+                    className={`text-black ${
+                      item.disabled && "cursor-not-allowed"
+                    }`}
+                    href={item.url}
+                  >
                     {item.label}
                   </Link>
                 </li>

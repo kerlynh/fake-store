@@ -17,7 +17,8 @@ export function AccessButton() {
   const accessList = [
     {
       label: "Cadastre-se",
-      url: "/sign-up",
+      url: "",
+      disabled: true,
     },
     {
       label: "Entrar",
@@ -47,7 +48,12 @@ export function AccessButton() {
           <ul className="space-y-4">
             {accessList.map((item, idx: number) => (
               <li key={idx}>
-                <Link className="text-black" href={item.url}>
+                <Link
+                  className={`text-black ${
+                    item.disabled && "cursor-not-allowed"
+                  }`}
+                  href={item.url}
+                >
                   {item.label}
                 </Link>
               </li>
